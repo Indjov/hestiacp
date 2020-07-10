@@ -162,6 +162,14 @@ prepare_web_domain_values() {
         sdocroot="$HOMEDIR/$user/web/$domain/public_shtml" ;
     fi
 
+    if [ -z "$CUSTOM_DOCROOT" ] && -d "$HOMEDIR/$user/web/$CUSTOM_DOCROOT" ]; then 
+        docroot="$HOMEDIR/$user/web/$CUSTOM_DOCROOT/public_html/"
+        sdocroot=$docroot
+        if [ "$SSL_HOME" = 'single' ]; then
+        $sdocroot="$HOMEDIR/$user/web/$CUSTOM_DOCROOT/spublic_html/"
+        fi
+    fi
+
     if [ ! -z "$WEB_BACKEND" ]; then
         prepare_web_backend "$BACKEND"
     fi
