@@ -848,4 +848,8 @@ $LANG['en'] = array(
     'Reset 2FA' => 'Unlock Account',
     '2FA Reset Code' => 'Account Recovery Code',
     'Invalid or missing token' => 'Invalid or missing token',
+
+    'SYSTEM_UPGRADE_SEND_NOTIFICATION_EMAIL' => 'Notify me by email when a new update has been installed',
+    'SYSTEM_UPGRADE_SAVE_LOG' => 'Save update installation logs',
+    'SYSTEM_UPGRADE_SEND_EMAIL_LOG' => 'Send update installation logs by email',
 );
