@@ -8,9 +8,11 @@ fi
 #                Initialize functions/variables               #
 ###############################################################
 
-# Load upgrade functions and refresh variables/configuration
+# Load upgrade functions and variables
+source /usr/local/hestia/conf/hestia.conf
+source /usr/local/hestia/install/upgrade/upgrade.conf
+source /usr/local/hestia/func/main.sh
 source /usr/local/hestia/func/upgrade.sh
-upgrade_refresh_config
 
 ###############################################################
 #             Set new version numbers for packages            #
@@ -18,38 +20,125 @@ upgrade_refresh_config
 # Hestia Control Panel
 new_version=$(dpkg -l | awk '$2=="hestia" { print $3 }')
 
-# phpMyAdmin
-pma_v='5.0.2'
-
 ###############################################################
 #               Begin standard upgrade routines               #
 ###############################################################
 
+# Set default verbose output based on release branch
+is_debug_build
+
 # Initialize backup directories
 upgrade_init_backup
 
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    # Initialize logging
+    upgrade_init_logging
+fi
+
 # Set up console display and welcome message
-upgrade_welcome_message
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_welcome_message_log >> $LOG
+    upgrade_welcome_message
+else
+    upgrade_welcome_message
+fi
+
+# Perform upgrade health check and refresh configuration before upgrading
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_health_check | tee -a $LOG
+    upgrade_refresh_config
+else
+    upgrade_health_check
+    upgrade_refresh_config
+fi
+
+# Back up existing configuration files and templates
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_start_backup | tee -a $LOG
+else
+    upgrade_start_backup
+fi
 
 # Execute version-specific upgrade scripts
-upgrade_start_routine
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_start_routine | tee -a $LOG
+else
+    upgrade_start_routine
+fi
 
-# Update PHP templates
-update_php_templates
+# Upgrade File Manager and update configuration
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_filemanager | tee -a $LOG
+    update_filemanager_configuration | tee -a $LOG
+else
+    upgrade_filemanager
+    update_filemanager_configuration
+fi
+
+# Update Web domain templates
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    update_web_templates | tee -a $LOG
+else
+    update_web_templates
+fi
+
+# Update Mail domain templates
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    update_mail_templates | tee -a $LOG
+else
+    update_mail_templates
+fi
+
+# Update DNS zone templates
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    update_dns_templates | tee -a $LOG
+else
+    update_dns_templates
+fi
 
 # Upgrade phpMyAdmin if applicable
-upgrade_phpmyadmin
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_phpmyadmin | tee -a $LOG
+else
+    upgrade_phpmyadmin
+fi
 
 # Set new version number in hestia.conf
 upgrade_set_version $new_version
 
 # Perform account and domain rebuild to ensure configuration files are correct
-upgrade_rebuild_users
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_rebuild_users | tee -a $LOG
+else
+    upgrade_rebuild_users
+fi
 
 # Restart necessary services for changes to take full effect
-upgrade_restart_services
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_restart_services | tee -a $LOG
+else
+    upgrade_restart_services
+fi
+
+# Perform upgrade clean-up tasks
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_perform_cleanup | tee -a $LOG
+else
+    upgrade_perform_cleanup
+fi
 
 # Add upgrade notification to admin user's panel and display completion message
-upgrade_complete_message
+if [ -z "$UPGRADE_SAVE_LOG" ] || [ "$UPGRADE_SAVE_LOG" = 'true' ]; then
+    upgrade_complete_message_log >> $LOG
+    upgrade_complete_message
+else
+    upgrade_complete_message
+fi
+
+# If setting variables are set to true in hestia.conf, send notifications and email output.
+upgrade_send_notification_to_panel
+upgrade_send_notification_to_email
+sleep 2
+upgrade_send_log_to_email
 
 exit 0
